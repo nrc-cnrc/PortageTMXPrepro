@@ -1,0 +1,161 @@
+#!/usr/bin/make -f
+# vim:noet:ts=3:nowrap
+
+# @file Makefile
+# @brief Create dev, test & train corpora.
+#
+# @author Samuel Larkin
+#
+# Technologies langagieres interactives / Interactive Language Technologiesm
+# Inst. de technologie de l'information / Institute for Information Technology
+# Conseil national de recherches Canada / National Research Council Canada
+# Copyright 2010, Sa Majeste la Reine du Chef du Canada /
+# Copyright 2010, Her Majesty in Right of Canada
+
+-include Makefile.params
+.SECONDARY:
+
+# What lang_id will be produced.
+SRC ?= fr
+TGT ?= en
+
+# What kind of sets to we want.
+SETS ?= dev1 dev2 dev3 test1 test2
+
+# Options for sample_parallel_text.
+# Default settings ask for 300 windows of 5 consecutive sentences.
+# This will yield ~1500 sentences per set.
+OPTIONS ?= -r -n 300 -w 5
+
+# Specific seed for every set.
+SEED.dev1  ?= 12010
+SEED.dev2  ?= 22010
+SEED.dev3  ?= 32010
+SEED.test1 ?= 42010
+SEED.test2 ?= 52010
+
+# Where can we find the tmx file.
+CORPORA_DIR ?= ..
+
+# Try to find out the tmx's file name.
+TMX_FILES     ?= $(wildcard ${CORPORA_DIR}/*.tmx)
+# From the tmx's file name, find a corpora prefix.
+CORPORA       ?= $(notdir $(basename $(filter-out %.utf8.tmx, ${TMX_FILES})))
+
+CORPORA_FILES  = $(sort $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al) $(CORPORA:=.id))
+AL_FILES       = $(sort $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al))
+
+MV = mv
+
+# Some help message to guide the user.
+.PHONY: help
+help:
+	@echo "This Makefile will produce disjoint corpora sets."
+	@echo "corpora will be of the following form:"
+	@echo "  <set>_<lang_id>.raw"
+	@echo "Where set     = {${SETS}}"
+	@echo "      lang_id = {${SRC} ${TGT}}"
+
+# What this Makefile is all about.
+.PHONY: all
+all: sets
+
+# Hoe to clean up.
+.PHONY: clean
+clean:
+	${RM} *.raw *.raw.gz *.id *.ini
+
+########################################	
+# We need to create train, test, and dev sets.
+# test and dev sets are taken from all, with the remainder going into the train
+# set.
+.PHONY: sets
+sets: train.id.gz
+
+vpath ${CORPORA}%al ${CORPORA_DIR}
+vpath ${CORPORA}%id ${CORPORA_DIR}
+#$(addprefix train, _${SRC}.raw _${TGT}.raw): train%.raw: ${CORPORA_DIR}/${CORPORA}%.al
+$(addprefix train, _${SRC}.raw.ini _${TGT}.raw.ini): train%.raw.ini: ${CORPORA}%.al
+	cp $< $@
+
+train.id.ini: ${CORPORA}.id
+	cp $< $@
+
+# How to make the id files which will also generate the _${SRC}.raw & _${TGT}.raw.
+$(addsuffix .id, ${SETS}): %.id: $(addprefix train, _${SRC}.raw.ini _${TGT}.raw.ini .id.ini)
+	sample_parallel_text ${OPTIONS} -s .$* -seed ${SEED.$*} $+
+	${MV} train_${SRC}.raw.ini.$* $(basename $*)_${SRC}.raw
+	${MV} train_${TGT}.raw.ini.$* $(basename $*)_${TGT}.raw
+	${MV} train.id.ini.$* $*.id
+	sample_parallel_text -v ${OPTIONS} -s .train -seed ${SEED.$*} $+
+	${MV} train_${SRC}.raw.ini.train train_${SRC}.raw.ini
+	${MV} train_${TGT}.raw.ini.train train_${TGT}.raw.ini
+	${MV} train.id.ini.train train.id.ini
+
+train.id.gz: $(addsuffix .id, ${SETS})
+	${MV} train_${SRC}.raw.ini train_${SRC}.raw
+	${MV} train_${TGT}.raw.ini train_${TGT}.raw
+	${MV} train.id.ini train.id
+	gzip train_*.raw
+
+
+
+############################################################
+# HELPERS
+########################################
+# Count the number of expected and extracted sentences.
+.PHONY: counts
+counts:
+	-egrep '<tu>' ${TMX_FILES} | wc -l
+	-wc -l $(CORPORA:=_${SRC}.al)
+	-wc -l $(CORPORA:=_${TGT}.al)
+	-wc -l $(CORPORA:=.id)
+
+########################################
+# Count the empty lines.
+.PHONY: empty
+empty:
+	-egrep -c '^ *$$' ${CORPORA_FILES} || true
+
+########################################
+# Count multi-sentence lines.
+.PHONY: multi_sentence_lines
+multi_sentence_lines: $(addsuffix .multi, $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al))
+%.multi: %
+	-egrep '([A-Z].+[a-z0-9] (\.|\?) +)[A-Z]' $< | wc -l
+
+.PHONY: gt2_sentence_lines
+gt2_sentence_lines: $(addsuffix .gt2, $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al))
+%.gt2: %
+	-egrep '([A-Z].+[a-z0-9] (\.|\?) +){2,}[A-Z]' $< | wc -l
+
+########################################
+# Get counts for all non latin1 characters.
+non_latin1_counts:
+	cat ${AL_FILES} \
+	| iconv_libiconv -f UTF-8 -t latin1 --unicode-subst="<[%x]>" \
+	| egrep -o '<\[[^<]+\]>' \
+	| sort \
+	| uniq -c
+
+########################################
+# Look for html markup in all .al files.
+.PHONY: find_markup
+find_markup: find_markup.al
+
+########################################
+# Look for html markup in all files having % extension.
+find_markup.%:
+	-egrep '<[^<]+>|\{\\' *.$* || true
+
+########################################
+# Sentence that appear three times or more.
+duplicate:
+	sort ${PREFIX}_en.al | uniq -c | egrep -v '[ ]*1 ' | egrep -v '[ ]*2 ' | sort -nr
+
+debug:
+	@echo "CORPORA_DIR: ${CORPORA_DIR}"
+	@echo "CORPORA_DIR2: $(realpath ${CORPORA_DIR})"
+	@echo "CORPORA_DIR3: $(abspath ${CORPORA_DIR})"
+	@echo "CORPORA: ${CORPORA}"
+	@echo "TMX_FILES: ${TMX_FILES}"

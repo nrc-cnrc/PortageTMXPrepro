@@ -1,0 +1,232 @@
+#!/usr/bin/make -f
+# vim:noet:ts=3:nowrap
+
+# @file Makefile
+# @brief Extract corpora from tmx files.
+#
+# @author Samuel Larkin
+#
+# Technologies langagieres interactives / Interactive Language Technologiesm
+# Inst. de technologie de l'information / Institute for Information Technology
+# Conseil national de recherches Canada / National Research Council Canada
+# Copyright 2010, Sa Majeste la Reine du Chef du Canada /
+# Copyright 2010, Her Majesty in Right of Canada
+
+
+-include Makefile.params
+#.SECONDARY:
+
+CORPORA_DIR ?= ../../../original/TMX
+
+# Autodetect corpora prefix.
+CORPORA ?= $(basename $(filter-out %.utf8.tmx, $(wildcard *.tmx)))
+
+# English text is tagged as "en-CA"
+SRCX ?= en-CA
+# French text is tagged as "fr-CA"
+TGTX ?= fr-CA
+
+SRC ?= en
+TGT ?= fr
+
+# Sort by doc id?
+SORT_BY_ID ?= 1
+
+# Project specific scripts directory
+SCRIPTS = ../../../scripts
+
+.SECONDARY: $(CORPORA:=.${SRCX}) $(CORPORA:=.${TGTX})
+#.SECONDARY: $(CORPORA:=.${SRCX}.clean) $(CORPORA:=.${TGTX}.clean)
+.INTERMEDIATE: $(CORPORA:=.${SRCX}.clean) $(CORPORA:=.${TGTX}.clean)
+.SECONDARY: $(CORPORA:=.db) $(CORPORA:=.id.tmp)
+.SECONDARY: $(CORPORA:=.db.sorted) $(CORPORA:=.db.unsorted)
+
+# What are we supposed to do in this Makefile.
+.PHONY: all
+all: tu
+all: validate
+
+
+########################################
+# Clean up
+.PHONY: clean clean.inter
+clean: clean.inter
+	${RM} $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al) $(CORPORA:=.id)
+	
+clean.inter:
+	${RM} $(CORPORA:=.${SRCX}) $(CORPORA:=.${TGTX})
+	${RM} $(CORPORA:=.${SRCX}.clean) $(CORPORA:=.${TGTX}.clean)
+	${RM} $(CORPORA:=.db) $(CORPORA:=.id.tmp)
+	${RM} $(CORPORA:=.db.*sorted)
+	${RM} $(CORPORA:=.utf8.tmx)
+
+clean.links:
+	${RM} $(CORPORA:=.tmx)
+
+
+########################################
+# Convert orignal TMX files to utf-8
+# remove some control sequence that are invalid in plain text file.
+
+.PHONY: utf8
+utf8: $(CORPORA:=.utf8.tmx)
+
+%.utf8.tmx: %.tmx
+	cat $< \
+	| iconv -f UTF-16 -t UTF-8 \
+	| strip_non_printing \
+	> $@
+
+# make sure the file is all valid utf8
+.PHONY: validate_utf8
+validate_utf8: $(addprefix validate_utf8., ${CORPORA})
+validate_utf8.%: %.utf8.tmx
+	utf8_filter -v -c < $< | egrep '\[__[[:xdigit:]]+\]' || true
+
+
+########################################
+# Extract the translation units.
+.PHONY: tu
+#tu: $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al)
+tu: $(addprefix ${CORPORA}, _${SRC}.al _${TGT}.al)
+
+# Step 1: Extract bilingual corpora from TMX files.
+#   SRC is English; TGT is French.
+
+%.${SRCX} %.${TGTX} %.id.tmp: %.tmx
+	tmx2lfl.pl -verbose -output=$* -src=${SRCX} -tgt=${TGTX} -txt=.to $<
+	mv $*.id $*.id.tmp
+	mv $*.${SRCX}.to $*.${SRCX}
+	mv $*.${TGTX}.to $*.${TGTX}
+
+# Step 2: Clean up text.
+#   Remove control characters.
+#   Normalize spaces.
+#   Replace all occurrences of ||| by ___|||___ since ||| is an invalid token in phrase tables.
+#   Important: we need to substitute tabs with space because later we'll use paste
+
+%.clean: %
+	cat $< \
+	| strip_non_printing \
+	| perl -ple 'BEGIN{use encoding "UTF-8";} \
+                s/[\x01-\x09\x0B\x0C\x0E-\x1F\x{2060}\x{FEFF}]/ /g; \
+	             s/^\s*(.*?)\s*$$/$$1/; s/\s+/ /g; \
+                s/\s+/ /g; \
+                s/ \|\|\| / ___|||___ /g;' \
+	> $@
+
+# Step 3: Remove mono-lingual entries.
+#   Remove any parallel entry that is empty in either file (paste cmd).
+#   Group sentences per document (if SORT_BY_ID is defined).
+
+ifneq ($(strip ${SORT_BY_ID}),)
+   DO_SORT = sort -k1,1 -s
+else
+   DO_SORT = cat
+endif
+
+# WARNING: Make sure your file .clean are tab-free.
+%_${SRC}.al %_${TGT}.al %.id: %.${SRCX}.clean %.${TGTX}.clean %.id.tmp
+	paste $*.id.tmp $*.${SRCX}.clean $*.${TGTX}.clean \
+	| perl -ne 'print $$_ unless /(^|\t)(\t|$$)/;' \
+	| ${DO_SORT} \
+	> $*.db
+	cut -f1 $*.db | perl -ple 'BEGIN{use encoding "UTF-8";} s/\s+/ /g' > $*.id
+	cut -f2 $*.db | perl -ple 'BEGIN{use encoding "UTF-8";} s/\s+/ /g' > $*_${SRC}.al
+	cut -f3 $*.db | perl -ple 'BEGIN{use encoding "UTF-8";} s/\s+/ /g' > $*_${TGT}.al
+	${RM} $*.db
+
+########################################
+# Let do some minimal validation on the output files.
+.PHONY: validate
+validate: SHELL=bash
+validate: $(addprefix ${CORPORA}, _${SRC}.al _${TGT}.al .id)
+	! egrep '^ *$$' $+ > /dev/null
+	! egrep '^EMPTY_$$' $+ > /dev/null
+	[[ "`wc -l < $(filter %_${SRC}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
+	[[ "`wc -l < $(filter %_${TGT}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
+
+
+
+
+############################################################
+# HELPERS
+
+########################################
+# Check whether sorting changed sentence order.
+.PHONY: check.sorted
+
+check.sorted: $(addprefix check.sorted., ${CORPORA})
+
+check.sorted.%: %.db.sorted %.db.unsorted
+	-diff -q $*.db.unsorted $*.db.sorted || true
+
+%.db.unsorted:  %.${SRCX}.clean %.${TGTX}.clean %.id.tmp
+	paste $*.id.tmp $*.${SRCX}.clean $*.${TGTX}.clean \
+	| perl -ne 'print $$_ unless /(^|\t)(\t|$$)/;' \
+	> $*.db.unsorted
+
+%.db.sorted:  %.db.unsorted
+	cat $*.db.unsorted \
+	| sort -k1,1 -s \
+	> $*.db.sorted
+
+
+########################################
+# Check whether sorting changed sentence order.
+.PHONY: check.counts
+
+check.counts: $(addprefix check.counts., ${CORPORA})
+
+check.counts.%:  %.utf8.tmx
+	${MAKE} counts.$*
+	${MAKE} empty.$*
+	@echo
+
+
+########################################
+# Count the number of expected and extracted sentences.
+.PHONY: counts
+counts: $(addprefix counts., ${CORPORA})
+
+counts.%: %.utf8.tmx
+	-egrep '<tu>|<tu .*>' $< | wc -l
+	-wc -l $(addprefix $*, _${SRC}.al _${TGT}.al .id .${SRCX} .${TGTX} .${SRCX}.clean .${TGTX}.clean) || true
+
+
+########################################
+# Count empty lines. The difference should be the missing tuv/seg.
+.PHONY: empty
+empty: $(addprefix empty., ${CORPORA})
+
+empty.%: %.utf8.tmx
+	-egrep -H -c $$'<seg></seg>' $< || true
+	-egrep -c '^ *$$' $(addprefix $*, _${SRC}.al _${TGT}.al .id .${SRCX} .${TGTX}) || true
+
+
+########################################
+# Get counts for all non latin1 characters.
+.PHONY: non_latin1_counts
+non_latin1_counts:
+	cat $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al) \
+	| iconv_libiconv -f UTF-8 -t latin1 --unicode-subst="<[%x]>" \
+	| egrep -o '<\[[^<]+\]>' \
+	| sort \
+	| uniq -c
+
+
+########################################
+# Look for html markup in all .al files.
+.PHONY: find_markup
+find_markup: find_markup.al
+
+# Look for html markup in all files having % extension.
+find_markup.%:
+	-egrep '<[^<]+>|\{\\' *.$* || true
+
+
+########################################
+# Find sentences that appear three times or more.
+.PHONY: duplicates
+duplicates:
+	sort $(CORPORA:=_${TGT}.al) | uniq -c | egrep -v '[ ]*1 ' | egrep -v '[ ]*2 ' | sort -nr
