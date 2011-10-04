@@ -20,7 +20,7 @@ SRC ?= fr
 TGT ?= en
 
 # What kind of sets to we want.
-SETS ?= dev1 dev2 dev3 test1 test2
+SETS ?= dev1 dev2 test
 
 # Options for sample_parallel_text.
 # Default settings ask for 300 windows of 5 consecutive sentences.
@@ -30,12 +30,10 @@ OPTIONS ?= -r -n 300 -w 5
 # Specific seed for every set.
 SEED.dev1  ?= 12010
 SEED.dev2  ?= 22010
-SEED.dev3  ?= 32010
-SEED.test1 ?= 42010
-SEED.test2 ?= 52010
+SEED.test ?= 42010
 
 # Where can we find the tmx file.
-CORPORA_DIR ?= ..
+CORPORA_DIR ?= ../tmx
 
 # Try to find out the tmx's file name.
 TMX_FILES     ?= $(wildcard ${CORPORA_DIR}/*.tmx)
@@ -44,6 +42,8 @@ CORPORA       ?= $(notdir $(basename $(filter-out %.utf8.tmx, ${TMX_FILES})))
 
 CORPORA_FILES  = $(sort $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al) $(CORPORA:=.id))
 AL_FILES       = $(sort $(CORPORA:=_${SRC}.al) $(CORPORA:=_${TGT}.al))
+
+SUFFIXES = _${SRC}.raw _${TGT}.raw .id
 
 MV = mv
 
@@ -63,40 +63,36 @@ all: sets
 # Hoe to clean up.
 .PHONY: clean
 clean:
-	${RM} *.raw *.raw.gz *.id *.ini
+	${RM} *.raw *.id *.raw.gz
 
 ########################################	
 # We need to create train, test, and dev sets.
 # test and dev sets are taken from all, with the remainder going into the train
 # set.
 .PHONY: sets
-sets: train.id.gz
+sets: $(addsuffix .id, ${SETS})
+	gzip train_*raw
 
-vpath ${CORPORA}%al ${CORPORA_DIR}
-vpath ${CORPORA}%id ${CORPORA_DIR}
+vpath ${CORPORA}%.al ../preparation
+vpath ${CORPORA}%.id ../preparation
 #$(addprefix train, _${SRC}.raw _${TGT}.raw): train%.raw: ${CORPORA_DIR}/${CORPORA}%.al
-$(addprefix train, _${SRC}.raw.ini _${TGT}.raw.ini): train%.raw.ini: ${CORPORA}%.al
+$(addprefix train, _${SRC}.raw _${TGT}.raw): train%.raw: ${CORPORA}%.al
 	cp $< $@
 
-train.id.ini: ${CORPORA}.id
+train.id: ${CORPORA}.id
 	cp $< $@
 
 # How to make the id files which will also generate the _${SRC}.raw & _${TGT}.raw.
-$(addsuffix .id, ${SETS}): %.id: $(addprefix train, _${SRC}.raw.ini _${TGT}.raw.ini .id.ini)
+$(addsuffix .id, ${SETS}): %.id: $(addprefix train, ${SUFFIXES})
 	sample_parallel_text ${OPTIONS} -s .$* -seed ${SEED.$*} $+
-	${MV} train_${SRC}.raw.ini.$* $(basename $*)_${SRC}.raw
-	${MV} train_${TGT}.raw.ini.$* $(basename $*)_${TGT}.raw
-	${MV} train.id.ini.$* $*.id
+	${MV} train_${SRC}.raw.$* $(basename $*)_${SRC}.raw
+	${MV} train_${TGT}.raw.$* $(basename $*)_${TGT}.raw
+	${MV} train.id.$* $*.id
 	sample_parallel_text -v ${OPTIONS} -s .train -seed ${SEED.$*} $+
-	${MV} train_${SRC}.raw.ini.train train_${SRC}.raw.ini
-	${MV} train_${TGT}.raw.ini.train train_${TGT}.raw.ini
-	${MV} train.id.ini.train train.id.ini
+	${MV} train_${SRC}.raw.train train_${SRC}.raw
+	${MV} train_${TGT}.raw.train train_${TGT}.raw
+	${MV} train.id.train train.id
 
-train.id.gz: $(addsuffix .id, ${SETS})
-	${MV} train_${SRC}.raw.ini train_${SRC}.raw
-	${MV} train_${TGT}.raw.ini train_${TGT}.raw
-	${MV} train.id.ini train.id
-	gzip train_*.raw
 
 
 

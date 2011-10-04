@@ -16,15 +16,17 @@
 -include Makefile.params
 #.SECONDARY:
 
-CORPORA_DIR ?= ../../../original/TMX
+CORPORA_DIR ?= ../tmx
 
 # Autodetect corpora prefix.
-CORPORA ?= $(basename $(filter-out %.utf8.tmx, $(wildcard *.tmx)))
+CORPORA ?= $(basename $(notdir $(filter-out %.utf8.tmx, $(wildcard ${CORPORA_DIR}/*.tmx))))
+
+vpath ${CORPORA}.tmx ${CORPORA_DIR}
 
 # English text is tagged as "en-CA"
-SRCX ?= en-CA
+SRCX ?= EN-CA
 # French text is tagged as "fr-CA"
-TGTX ?= fr-CA
+TGTX ?= FR-CA
 
 SRC ?= en
 TGT ?= fr
@@ -73,7 +75,7 @@ utf8: $(CORPORA:=.utf8.tmx)
 
 %.utf8.tmx: %.tmx
 	cat $< \
-	| iconv -f UTF-16 -t UTF-8 \
+	| iconv -c -f UTF-16 -t UTF-8 \
 	| strip_non_printing \
 	> $@
 
@@ -141,8 +143,7 @@ endif
 .PHONY: validate
 validate: SHELL=bash
 validate: $(addprefix ${CORPORA}, _${SRC}.al _${TGT}.al .id)
-	! egrep '^ *$$' $+ > /dev/null
-	! egrep '^EMPTY_$$' $+ > /dev/null
+	! egrep '^ *$$|EMPTY_' $+
 	[[ "`wc -l < $(filter %_${SRC}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
 	[[ "`wc -l < $(filter %_${TGT}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
 
