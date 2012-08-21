@@ -1,0 +1,135 @@
+# vim:noet:ts=3
+# $Id$
+# @author Darlene Stewart
+# @brief Master parameter file for CLS Lexi-tech for corpora preprocessing
+# where all user specific parameters should be set.
+# 
+# This Makefile.params can be used for English-French or Chinese-English preprocessing.
+# It supports defining multiple domains or treating all TMX files a single domain.
+#
+# Typically, we need to create a train, one test, and two dev sets for each 
+# domain. Dev and test sets are taken from each domain that will be used to tune
+# a system, with the rest of the domain data going into the domain's train set.
+# The two dev and one test sets are 1500 sentences each for big domains, or
+# 1000 sentences for smaller domains.
+#
+# Technologies langagieres interactives / Interactive Language Technologies
+# Tech. de l'information et des communications / Information and Communications Tech.
+# Conseil national de recherches Canada / National Research Council Canada
+# Copyright 2012, Sa Majeste la Reine du Chef du Canada
+# Copyright 2012, Her Majesty in Right of Canada
+
+# Print the Portage Copyright no matter where we start from -- but only once.
+ifeq (${MAKELEVEL},0)
+   $(shell portage_info)
+endif
+
+
+################################################################################
+# User definable variables
+
+# Source (from) and Target (to) language
+SRC ?= en
+TGT ?= fr
+
+# Language tags in the TMX files
+# For CH->EN, Chinese text is tagged as "ZH-CN", English text is tagged as "EN-GB".
+# For EN<->FR, English text is tagged as "EN-CA", French text is tagged as "FR-CA".
+TMX_SRC ?= EN-CA
+TMX_TGT ?= FR-CA
+
+# The domain names, and the base names of the files comprising them
+# Define here (short) base names to use for your domain corpora.
+# Names with the .extra suffix define extra corpora that will not participate
+# in the dev and test sets but will included in the train set of the
+# corresponding domain.
+#
+# Example:
+# my_domain := tmx1_base_name tmx2_base_name
+# my_domain.extra := tmx3_base_name
+
+# Define which of the above defined domain corpora are to have "big" dev/test sets 
+# (CORPORA_BIG_DT) and which are to have "small" dev/test sets (CORPORA_SMALL_DT).
+# Dev, test, and train sets are created for CORPORA_BIG_DT and CORPORA_SMALL_DT.
+# Only the train set is created for CORPORA_NO_DT.
+#
+# Leaving CORPORA_BIG_DT, CORPORA_SMALL_DT and CORPORA_NO_DT all blank or
+# undefined triggers preparation of sets for a single corpus with no corpus
+# name included in the filenames.
+CORPORA_BIG_DT ?=
+CORPORA_SMALL_DT ?=
+CORPORA_NO_DT ?=
+
+# Sets to be created.
+# DT_SETS holds the dev and test sets in the necessary creation order.
+# TRAIN_SET is the name of the train set.
+# ALL_SET is the name of a set comprising all the data (train, dev, and test),
+# which can be used for training final models for deployment on a portageLive 
+# translation server.
+# These names are extensions that will be appended to corpora names.
+DEV_SETS ?= dev1 dev2
+TEST_SETS ?= test
+TRAIN_SET ?= train
+ALL_SET ?= all
+
+# Number of sentences to extract from each domain corpus for each dev/test set.
+SIZE.BIG   ?= 1500
+SIZE.SMALL ?= 1000
+
+# The default is to use the most recent data for test and dev sets.
+# If you want to use random sampling instead, define USE_RANDOM_SAMPLING
+# by uncommenting below:
+USE_RANDOM_SAMPLING ?= 1
+
+# Sample size and counts for large/small domain for random sampled sets.
+# The size of each set is ~ SAMPLE_CNT.{BIG,SMALL} * SAMPLE_SIZE 
+# which should equal SIZE.{BIG,SMALL}
+RSAMPLE_CNT.BIG  ?= 300
+RSAMPLE_CNT.SMALL ?= 200
+RSAMPLE_SIZE ?= 5
+
+# Seed values for random sampling of sets.
+SEED.dev1 ?= 12010
+SEED.dev2 ?= 22010
+SEED.test ?= 42010
+
+
+################################################################################
+# Standard definitions used by the preparation and corpora Makefiles.
+
+# Where to find the top level project directory (relative to Makefile.params location)
+PROJECT_DIR ?= ..
+
+# Where to find the original corpora files (relative to Makefile.params location)
+TMX_DIR ?= ${PROJECT_DIR}/tmx
+PREP_DIR ?= ${PROJECT_DIR}/preparation
+
+# Where to find processing scripts (relative to Makefile.params location)
+SCRIPTS_DIR ?= ${PROJECT_DIR}/scripts
+
+# Extension for text only files. Define to extract and use text only version.
+TXTX ?= .txt
+
+# Suffixes for the original parallel corpora files
+SFXS ?= _${SRC}.al _${TGT}.al .id
+
+DT_SETS ?= ${TEST_SETS} ${DEV_SETS}
+ALL_SETS ?= ${DT_SETS} ${TRAIN_SET} ${ALL_SET}
+
+# The domain corpora, and original domain corpora
+CORPORA_DT = ${CORPORA_BIG_DT} ${CORPORA_SMALL_DT}
+ALL_CORPORA = ${CORPORA_BIG_DT} ${CORPORA_SMALL_DT} ${CORPORA_NO_DT}
+EXTRA_CORPORA = $(addsuffix .extra, ${CORPORA_DT})
+ORIG_CORPORA = ${ALL_CORPORA} ${EXTRA_CORPORA}
+
+# Leaving CORPORA_BIG_DT, CORPORA_SMALL_DT and CORPORA_NO_DT all blank or undefined
+# triggers preparation of a single corpus with the data from all the TMX files.
+ifeq ($(strip ${ALL_CORPORA}),)
+corpus ?= $(notdir $(basename $(filter-out %.utf8.tmx, $(wildcard ${TMX_DIR}/*.tmx))))
+override CORPORA_BIG_DT := corpus
+# USE_DEFAULT_SET_NAMES triggers generation of train*, test*, dev*
+# instead of corpus.train*, corpus.test*, corpus.dev*
+USE_DEFAULT_SET_NAMES ?= 1
+endif
+
+MV ?= mv
