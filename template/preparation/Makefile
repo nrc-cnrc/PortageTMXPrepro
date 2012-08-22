@@ -75,15 +75,15 @@ UTF8 ?= .utf8.clean
 .PHONY: utf8
 utf8: $(CORPORA_FILES:=.utf8.tmx)
 
-# SYWG-Chinese(simplified)-English.utf8.tmx contains some illegal input sequences,
-# so have iconv discard these (-c).
+# Some TMX files contain illegal input sequences, so have iconv discard these
+# (-c).
 %.utf8.tmx: %.tmx
 	cat $< \
 	| iconv -c -f UTF-16 -t UTF-8 \
 	> $@
 
-# The test SYWG-Chinese(simplified)-English.utf8.tmx contains some BEL (0x07) 
-# characters that the xml parser used by tmx2lfl.pl cannot parse.
+# Some TMX files contain some BEL (0x07) characters that the xml parser used by
+# tmx2lfl.pl cannot parse.
 %.utf8.clean.tmx: %.utf8.tmx
 	cat $< \
 	| perl -ple 'use encoding "UTF-8"; \
@@ -119,9 +119,9 @@ endif
 # Step 2: Clean up and normalize the text.
 #   - Convert wide punctuation character to space-surrounded normal ones in the EN-GB.
 #   - Strip HTML markup where the HTML code starts with a non-uppercase character.
-#   (Note: SYWG-Chinese_simplified-English.EN-GB.txt contains some non-HTML text
-#   sequences surrounded by <>, but these start with an uppercase letter whereas
-#   the HTML sequences are lowercase.)
+#   (Note: some TMX files contain some non-HTML text sequences surrounded by
+#   <>, but these start with an uppercase letter whereas the HTML sequences are
+#   lowercase.)
 #   - Replace control characters that are invalid in plain text by spaces.
 #   - Normalize spaces.
 #   - Replace occurrences of ||| by ___|||___ since ||| is an invalid token in phrase tables.
@@ -131,10 +131,19 @@ FIX_WIDE_CHARS = s/([，。：）（；？﹗．﹪﹡﹟])/ \1 /g; tr/，。：
 %.EN-GB${TXTX}.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
 %.EN-GB.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
 
+# Uncomment this line to replace the soft hyphen (alt-0173 in Word, \xAD) with -
+HYPHENS_TO_NORMALIZE = s/[­]/-/g;
+# Uncomment this line to replace the official ASCII/Latin-1/Unicode
+# non-breaking hyphen (\x1F) with -
+#HYPHENS_TO_NORMALIZE = s/[]/-/g;
+# Uncomment this line to replace both the soft and non-breaking hyphen by -
+#HYPHENS_TO_NORMALIZE = s/[­]/-/g;
+
 %.clean: %
 	cat $< \
 	| perl -ple 'BEGIN{use encoding "UTF-8"; use utf8}; \
-                     ${DO_FIX_WIDE_CHARS} \
+	             ${DO_FIX_WIDE_CHARS} \
+	             ${HYPHENS_TO_NORMALIZE} \
 	             s/\s*(<[^A-Z>][^>]*>\s*)+\s*/ /g; \
 	             s/[\x01-\x09\x0B\x0C\x0E-\x1F\x7F\x{2060}\x{FEFF}]/ /g; \
 	             s/\s+/ /g; \
