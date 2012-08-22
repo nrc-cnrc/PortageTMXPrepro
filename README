@@ -1,0 +1,8 @@
+Directory */preparation/ contains a Makefile to extract text from TMX files and
+clean it up.  The Makefile.params file is use to setup various parameters
+indicating what the TMX file(s) is(are) called, which ones should be used to
+sample dev and test sets from, which ones should be combined, etc.
+
+Directory */corpora/ is where the dev and test sampling happens.  It reuses the
+same Makefile.params from */preparation/.
+
