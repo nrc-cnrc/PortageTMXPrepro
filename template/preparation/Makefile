@@ -131,23 +131,23 @@ FIX_WIDE_CHARS = s/([，。：）（；？﹗．﹪﹡﹟])/ \1 /g; tr/，。：
 %.EN-GB${TXTX}.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
 %.EN-GB.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
 
-# Uncomment this line to replace the soft hyphen (alt-0173 in Word, \xAD) with -
-HYPHENS_TO_NORMALIZE = s/[­]/-/g;
-# Uncomment this line to replace the official ASCII/Latin-1/Unicode
-# non-breaking hyphen (\x1F) with -
-#HYPHENS_TO_NORMALIZE = s/[]/-/g;
-# Uncomment this line to replace both the soft and non-breaking hyphen by -
-#HYPHENS_TO_NORMALIZE = s/[­]/-/g;
+# This expression replaces the official Unicode non-breaking hyphen (\x2011),
+# MS Word's non-breaking hyphen (alt-0173, \xAD, officially the soft hyphen),
+# MS Word's former non-breaking hyphen (\x1E), by a plain hyphen, -.
+HYPHENS_TO_NORMALIZE = s/[‑­\x1E]/-/g;
+# This expression removes MS Word's discretional hyphen, \x1F.
+HYPHENS_TO_REMOVE = s/[\x1F]//g;
 
 %.clean: %
 	cat $< \
 	| perl -ple 'BEGIN{use encoding "UTF-8"; use utf8}; \
 	             ${DO_FIX_WIDE_CHARS} \
 	             ${HYPHENS_TO_NORMALIZE} \
+	             ${HYPHENS_TO_REMOVE} \
 	             s/\s*(<[^A-Z>][^>]*>\s*)+\s*/ /g; \
 	             s/[\x01-\x09\x0B\x0C\x0E-\x1F\x7F\x{2060}\x{FEFF}]/ /g; \
 	             s/\s+/ /g; \
-	             s/ \|\|\| / ___|||___ /g; \
+	             s/(^| )\|\|\|(?= |$$)/ ___|||___/g; \
 	             s/^\s+//g; \
 	             s/\s+$$//g;' \
 	> $@
