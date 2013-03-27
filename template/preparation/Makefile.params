@@ -41,7 +41,7 @@ TMX_TGT ?= FR-CA
 # The domain names, and the base names of the files comprising them
 # Define here (short) base names to use for your domain corpora.
 # Names with the .extra suffix define extra corpora that will not participate
-# in the dev and test sets but will included in the train set of the
+# in the dev and test sets but will included in the train ${ET_AL} set of the
 # corresponding domain.
 #
 # Example:
@@ -71,6 +71,13 @@ DEV_SETS ?= dev1 dev2
 TEST_SETS ?= test
 TRAIN_SET ?= train
 ALL_SET ?= all
+
+# Define the corpus suffix for the et_al train set (i.e corpus train + extra)
+ET_AL ?= +al
+
+# To create an overall training set that is the concatenation of the domain
+# training sets, define DO_ALL.TRAIN_SET by uncommenting below:
+DO_ALL.TRAIN_SET ?= 1
 
 # Number of sentences to extract from each domain corpus for each dev/test set.
 SIZE.BIG   ?= 1500

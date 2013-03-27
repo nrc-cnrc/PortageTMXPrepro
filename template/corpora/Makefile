@@ -64,7 +64,7 @@ all: sets
 ########################################
 # Clean up
 .PHONY: clean
-clean: clean.inter $(addprefix clean.sets., ${ALL_CORPORA})
+clean: clean.inter $(addprefix clean.sets., ${ALL_CORPORA} all)
 
 .PHONY: clean.inter
 clean.inter:
@@ -72,9 +72,9 @@ clean.inter:
 	${RM} *.tmp*
 	${RM} *.rtrain
 
-.PHONY: $(addprefix clean.set., ${ALL_CORPORA})
-$(addprefix clean.sets., ${ALL_CORPORA}): clean.sets.%:
-	${RM} $(foreach s, ${ALL_SETS}, $*.$s*)
+.PHONY: $(addprefix clean.sets., ${ALL_CORPORA} all)
+$(addprefix clean.sets., ${ALL_CORPORA} all): clean.sets.%:
+	${RM} $(foreach s, ${ALL_SETS}, $*.$s*) $*${ET_AL}.${TRAIN_SET}* $*${ET_AL}.${ALL_SET}*
 
 
 ########################################
@@ -154,7 +154,12 @@ endif
 # Alternatively (if USE_RANDOM_SAMPLING is set)
 #    Test and dev sets are random sampled from the training data.
 # In both cases:
-#    Train set is the remainder + any extra corpora for the domain
+#    Train set is the remainder, and
+#    Train ${ET_AL} set is the remainder + any extra corpora for the domain
+#    All set is train and test and dev (i.e. original corpora)
+#    All ${ET_AL} set is train and test and dev + any extra corpora (i.e. all data for the domain)
+# Upon request an overall all.train set is created which is the concatenation
+# of all the train sets.
 
 $(ALL_CORPORA:=.train_${SRC}.raw.tmp): %.train_${SRC}.raw.tmp: %_${SRC}.al
 $(ALL_CORPORA:=.train_${TGT}.raw.tmp): %.train_${TGT}.raw.tmp: %_${TGT}.al
@@ -216,21 +221,57 @@ $(foreach c, ${ALL_CORPORA}, \
 )
 
 $(ALL_CORPORA:=.${TRAIN_SET}.id): %.${TRAIN_SET}.id:
-	cat $(filter %_${SRC}.al, $+) $*.train_${SRC}.raw.tmp | gzip > $*.${TRAIN_SET}_${SRC}.raw.gz
-	cat $(filter %_${TGT}.al, $+) $*.train_${TGT}.raw.tmp | gzip > $*.${TRAIN_SET}_${TGT}.raw.gz
-	cat $(filter %.id, $+) $*.train.id.tmp > $*.${TRAIN_SET}.id
+	cat $*.train_${SRC}.raw.tmp | gzip > $*.${TRAIN_SET}_${SRC}.raw.gz
+	cat $*.train_${TGT}.raw.tmp | gzip > $*.${TRAIN_SET}_${TGT}.raw.gz
+	cat $*.train.id.tmp > $*.${TRAIN_SET}.id
+	$(if ${$*.extra}, cat $*.train_${SRC}.raw.tmp $(filter %_${SRC}.al, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${SRC}.raw.gz)
+	$(if ${$*.extra}, cat $*.train_${TGT}.raw.tmp $(filter %_${TGT}.al, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz)
+	$(if ${$*.extra}, cat $*.train.id.tmp $(filter %.id, $+) > $*${ET_AL}.${TRAIN_SET}.id)
 	rm $*.train_${SRC}.raw.tmp $*.train_${TGT}.raw.tmp $*.train.id.tmp
 
 $(ALL_CORPORA:=.${TRAIN_SET}_${SRC}.raw.gz): %.${TRAIN_SET}_${SRC}.raw.gz: | %.${TRAIN_SET}.id ;
 $(ALL_CORPORA:=.${TRAIN_SET}_${TGT}.raw.gz): %.${TRAIN_SET}_${TGT}.raw.gz: | %.${TRAIN_SET}.id ;
 
+ifdef ET_AL
+$(ALL_CORPORA:=${ET_AL}.${TRAIN_SET}.id): %${ET_AL}.${TRAIN_SET}.id: | %.${TRAIN_SET}.id ;
+$(ALL_CORPORA:=${ET_AL}.${TRAIN_SET}_${SRC}.raw.gz): %${ET_AL}.${TRAIN_SET}_${SRC}.raw.gz: | %.${TRAIN_SET}.id ;
+$(ALL_CORPORA:=${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz): %${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz: | %.${TRAIN_SET}.id ;
+endif
+
 $(ALL_CORPORA:=.${ALL_SET}.id): %.${ALL_SET}.id:
-	cat $(filter %_${SRC}.al, $+) | gzip > $*.${ALL_SET}_${SRC}.raw.gz
-	cat $(filter %_${TGT}.al, $+) | gzip > $*.${ALL_SET}_${TGT}.raw.gz
-	cat $(filter %.id, $+) > $*.${ALL_SET}.id
+	cat $*_${SRC}.al | gzip > $*.${ALL_SET}_${SRC}.raw.gz
+	cat $*_${TGT}.al | gzip > $*.${ALL_SET}_${TGT}.raw.gz
+	cat $*.id > $*.${ALL_SET}.id
+	$(if ${$*.extra}, cat $(filter %_${SRC}.al, $+) | gzip > $*${ET_AL}.${ALL_SET}_${SRC}.raw.gz)
+	$(if ${$*.extra}, cat $(filter %_${TGT}.al, $+) | gzip > $*${ET_AL}.${ALL_SET}_${TGT}.raw.gz)
+	$(if ${$*.extra}, cat $(filter %.id, $+) > $*${ET_AL}.${ALL_SET}.id)
 
 $(ALL_CORPORA:=.${ALL_SET}_${SRC}.raw.gz): %.${ALL_SET}_${SRC}.raw.gz: | %.${ALL_SET}.id ;
 $(ALL_CORPORA:=.${ALL_SET}_${TGT}.raw.gz): %.${ALL_SET}_${TGT}.raw.gz: | %.${ALL_SET}.id ;
+
+ifdef ET_AL
+$(ALL_CORPORA:=${ET_AL}.${ALL_SET}.id): %${ET_AL}.${ALL_SET}.id: | %.${ALL_SET}.id ;
+$(ALL_CORPORA:=${ET_AL}.${ALL_SET}_${SRC}.raw.gz): %${ET_AL}.${ALL_SET}_${SRC}.raw.gz: | %.${ALL_SET}.id ;
+$(ALL_CORPORA:=${ET_AL}.${ALL_SET}_${TGT}.raw.gz): %${ET_AL}.${ALL_SET}_${TGT}.raw.gz: | %.${ALL_SET}.id ;
+endif
+
+# If requested, also create an overall train set (all.train) by concatenating
+# all the other train sets. Such a set is useful for training truecasing and/or
+# distortion models.
+ifdef DO_ALL.TRAIN_SET
+sets: set.all
+
+.PHONY: set.all
+set.all: $(addprefix all.${TRAIN_SET}, ${SFXS:.al=.raw.gz})
+
+all.${TRAIN_SET}.id: %.id: $(foreach c, ${ALL_CORPORA}, $(addprefix $c$(if ${$c.extra},${ET_AL}).${TRAIN_SET}, ${SFXS:.al=.raw.gz}))
+	cat $(filter %_${SRC}.raw.gz, $+) > $*_${SRC}.raw.gz
+	cat $(filter %_${TGT}.raw.gz, $+) > $*_${TGT}.raw.gz
+	cat $(filter %.id, $+) > $*.id
+
+all.${TRAIN_SET}_${SRC}.raw.gz: | all.${TRAIN_SET}.id ;
+all.${TRAIN_SET}_${TGT}.raw.gz: | all.${TRAIN_SET}.id ;
+endif
 
 
 ############################################################
