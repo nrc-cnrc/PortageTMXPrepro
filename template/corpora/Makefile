@@ -4,7 +4,8 @@
 # @author Darlene Stewart based on previous Makefile by Samuel Larkin
 # @brief Makefile for CLS Lexi-tech for building domain dev/test/train sets.
 # 
-# This Makefile can be used for English-French or Chinese-English preprocessing.
+# This Makefile can be used for processing: 
+# English-French, Chinese-English, Danish-English. 
 # It supports defining multiple domains or treating all TMX files a single domain.
 #
 # Typically, we need to create a train, one test, and two dev sets for each 

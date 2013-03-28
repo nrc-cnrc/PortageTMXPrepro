@@ -1,10 +1,10 @@
 #!/usr/bin/make -f
 # vim:noet:ts=3
-# $Id$
 # @author Darlene Stewart based on previous Makefile by Samuel Larkin
 # @brief Makefile for CLS Lexi-tech for extracting parallel corpora from TMX files.
 # 
-# This Makefile can be used for English-French or Chinese-English preprocessing.
+# This Makefile can be used for processing: 
+# English-French, Chinese-English, Danish-English. 
 # It supports extraction from multiple TMX files.
 #
 # Technologies langagieres interactives / Interactive Language Technologies

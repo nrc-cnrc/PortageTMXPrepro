@@ -4,7 +4,8 @@
 # @brief Master parameter file for CLS Lexi-tech for corpora preprocessing
 # where all user specific parameters should be set.
 # 
-# This Makefile.params can be used for English-French or Chinese-English preprocessing.
+# This Makefile.params can be used for processing: 
+# English-French, Chinese-English, Danish-English. 
 # It supports defining multiple domains or treating all TMX files a single domain.
 #
 # Typically, we need to create a train, one test, and two dev sets for each 
@@ -35,6 +36,7 @@ TGT ?= fr
 # Language tags in the TMX files
 # For CH->EN, Chinese text is tagged as "ZH-CN", English text is tagged as "EN-GB".
 # For EN<->FR, English text is tagged as "EN-CA", French text is tagged as "FR-CA".
+# For DA<->EN, Danish text is tagged as "DA", English text is tagged as "EN-GB".
 TMX_SRC ?= EN-CA
 TMX_TGT ?= FR-CA
 
