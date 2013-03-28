@@ -128,8 +128,10 @@ endif
 
 FIX_WIDE_CHARS = s/([，。：）（；？﹗．﹪﹡﹟])/ \1 /g; tr/，。：）（；？﹗．﹪﹡﹟/,.:)(;?!.%*\#/;
 
+ifneq ("$(filter ZH-CN,${TMX_SRC} ${TMX_TGT})","")
 %.EN-GB${TXTX}.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
 %.EN-GB.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
+endif
 
 # This expression replaces the official Unicode non-breaking hyphen (\x2011),
 # MS Word's non-breaking hyphen (alt-0173, \xAD, officially the soft hyphen),
