@@ -82,12 +82,14 @@ utf8: $(CORPORA_FILES:=.utf8.tmx)
 	| iconv -c -f UTF-16 -t UTF-8 \
 	> $@
 
-# Some TMX files contain some BEL (0x07) characters that the xml parser used by
+# Some TMX files contain control characters that the XML parser used by
 # tmx2lfl.pl cannot parse.
 %.utf8.clean.tmx: %.utf8.tmx
 	cat $< \
 	| perl -ple 'use encoding "UTF-8"; \
-	             s/[\x07]/ /g;' \
+	             s/[\x01-\x09\x0B\x0C\x0E-\x1d]/ /g; \
+	             s/[\x1f]//g;  \
+	             s/[\x1e]/-/g;' \
 	> $@
 
 # Make sure the TMX file is all valid utf8
