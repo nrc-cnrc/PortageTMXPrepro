@@ -1,5 +1,4 @@
 # vim:noet:ts=3
-# $Id$
 # @author Darlene Stewart
 # @brief Master parameter file for CLS Lexi-tech for corpora preprocessing
 # where all user specific parameters should be set.
@@ -79,7 +78,7 @@ ET_AL ?= +al
 
 # To create an overall training set that is the concatenation of the domain
 # training sets, define DO_ALL.TRAIN_SET by uncommenting below:
-DO_ALL.TRAIN_SET ?= 1
+#DO_ALL.TRAIN_SET ?= 1
 
 # Number of sentences to extract from each domain corpus for each dev/test set.
 SIZE.BIG   ?= 1500
