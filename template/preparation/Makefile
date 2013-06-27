@@ -75,12 +75,22 @@ UTF8 ?= .utf8.clean
 .PHONY: utf8
 utf8: $(CORPORA_FILES:=.utf8.tmx)
 
+# Convert the TMX file to utf-8, if necessary.
 # Some TMX files contain illegal input sequences, so have iconv discard these
 # (-c).
 %.utf8.tmx: %.tmx
-	cat $< \
-	| iconv -c -f UTF-16 -t UTF-8 \
-	> $@
+	head -c 10 $< | xxd
+	@if head -c 10 $< | xxd | grep '<?xml'; then \
+	   echo Looks like $< is already in utf-8, filtering it instead of converting it; \
+	   cat $< \
+	   | iconv -c -f UTF-8 -t UTF-8 \
+	   > $@; \
+	else \
+	   echo Assuming $< is in utf-16, converting to utf-8; \
+	   cat $< \
+	   | iconv -c -f UTF-16 -t UTF-8 \
+	   > $@; \
+	fi
 
 # Some TMX files contain control characters that the XML parser used by
 # tmx2lfl.pl cannot parse.
