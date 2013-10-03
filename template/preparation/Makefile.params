@@ -45,6 +45,9 @@ TMX_TGT ?= FR-CA
 # in the dev and test sets but will included in the train ${ET_AL} set of the
 # corresponding domain.
 #
+# Note: make sure your domain and TMX names do not clash with any of the
+# generated names: don't use "train", "dev" or "test" here.
+#
 # Example:
 # my_domain := tmx1_base_name tmx2_base_name
 # my_domain.extra := tmx3_base_name
@@ -138,6 +141,11 @@ override CORPORA_BIG_DT := corpus
 # USE_DEFAULT_SET_NAMES triggers generation of train*, test*, dev*
 # instead of corpus.train*, corpus.test*, corpus.dev*
 USE_DEFAULT_SET_NAMES ?= 1
+endif
+
+ALL_CORPORA_AND_FILES := ${ORIG_CORPORA} $(foreach c,$(ORIG_CORPORA),${$c})
+ifneq ($(filter ${ALL_CORPORA_AND_FILES},${ALL_SETS}),)
+   $(error "$(filter ${ALL_CORPORA_AND_FILES},${ALL_SETS})" name(s) both input and output sets.  Please rename your TMX files or change your domain names to avoid conflicts))
 endif
 
 MV ?= mv
