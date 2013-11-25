@@ -93,11 +93,9 @@ SIZE.SMALL ?= 1000
 USE_RANDOM_SAMPLING ?= 1
 
 # Sample size and counts for large/small domain for random sampled sets.
-# The size of each set is ~ SAMPLE_CNT.{BIG,SMALL} * SAMPLE_SIZE 
-# which should equal SIZE.{BIG,SMALL}
-RSAMPLE_CNT.BIG  ?= 300
-RSAMPLE_CNT.SMALL ?= 200
 RSAMPLE_SIZE ?= 5
+RSAMPLE_CNT.BIG ?= $(shell echo $$(( ${SIZE.BIG} / ${RSAMPLE_SIZE} )))
+RSAMPLE_CNT.SMALL ?= $(shell echo $$(( ${SIZE.SMALL} / ${RSAMPLE_SIZE} )))
 
 # Seed values for random sampling of sets.
 SEED.dev1 ?= 12010
