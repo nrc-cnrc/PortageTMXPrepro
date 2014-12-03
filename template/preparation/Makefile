@@ -151,6 +151,8 @@ endif
 HYPHENS_TO_NORMALIZE = s/[‑­\x1E]/-/g;
 # This expression removes MS Word's discretional hyphen, \x1F.
 HYPHENS_TO_REMOVE = s/[\x1F]//g;
+# Non breaking spaces
+NON_BREAKING_SPACES := s/[\x{2060}\x{FEFF}\x{00A0}\x{2007}\x{202F}]/ /g;
 
 %.clean: %
 	cat $< \
@@ -159,7 +161,8 @@ HYPHENS_TO_REMOVE = s/[\x1F]//g;
 	             ${HYPHENS_TO_NORMALIZE} \
 	             ${HYPHENS_TO_REMOVE} \
 	             s/\s*(<[^A-Z>][^>]*>\s*)+\s*/ /g; \
-	             s/[\x01-\x09\x0B\x0C\x0E-\x1F\x7F\x{2060}\x{FEFF}]/ /g; \
+	             ${NON_BREAKING_SPACES} \
+	             s/[\x01-\x09\x0B\x0C\x0E-\x1F\x7F]/ /g; \
 	             s/\s+/ /g; \
 	             s/(^| )\|\|\|(?= |$$)/ ___|||___/g; \
 	             s/^\s+//g; \
