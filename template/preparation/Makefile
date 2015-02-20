@@ -92,14 +92,26 @@ utf8: $(CORPORA_FILES:=.utf8.tmx)
 	   > $@; \
 	fi
 
-# Some TMX files contain control characters that the XML parser used by
-# tmx2lfl.pl cannot parse.
+# Some TMX files contain control characters (as literals or entities) that the
+# XML parser used by tmx2lfl.pl cannot parse.
+# \x0A (LF or \n) and \x0D (CR or \r) are OK, but all other characters from
+# \x01 to \x1f must go.
+#  - \x1e is replaced by hyphen because MSWord uses it as non-breaking hyphen
+#  - \x1f is simply deleted because MSWord uses it as optional hyphen
+#    (indicates where to break a word if it needs to be wrapped across two
+#    lines), so it normally does not mark a word break.
+#  - all others are replaced by a space, which will cause a token break, which
+#    is expected to be the right thing to do most of the time.
 %.utf8.clean.tmx: %.utf8.tmx
 	cat $< \
 	| perl -ple 'use encoding "UTF-8"; \
 	             s/[\x01-\x09\x0B\x0C\x0E-\x1d]/ /g; \
+	             s/[\x1e]/-/g; \
 	             s/[\x1f]//g;  \
-	             s/[\x1e]/-/g;' \
+	             s/&#x[1-9bce];/ /ig; \
+	             s/&#x1[0-9a-d];/ /ig; \
+	             s/&#x1e;/-/ig; \
+	             s/&#x1f;//ig; ' \
 	> $@
 
 # Make sure the TMX file is all valid utf8
