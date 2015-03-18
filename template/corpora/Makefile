@@ -93,9 +93,9 @@ else
 endif
 
 $(ALL_CORPORA:=.id): %.id:
-	cat $(addprefix ${CORPORA_DIR}/, $($*:=_${SRC}.al)) > $*_${SRC}.al
-	cat $(addprefix ${CORPORA_DIR}/, $($*:=_${TGT}.al)) > $*_${TGT}.al
-	cat $(addprefix ${CORPORA_DIR}/, $($*:=.id)) > $*.id
+	zcat -f $(addprefix ${CORPORA_DIR}/, $*_${SRC}.al) > $*_${SRC}.al
+	zcat -f $(addprefix ${CORPORA_DIR}/, $*_${TGT}.al) > $*_${TGT}.al
+	zcat -f $(addprefix ${CORPORA_DIR}/, $*.id) > $*.id
 	paste $*.id $*_${SRC}.al $*_${TGT}.al | ${DO_SORT} > $*.db
 	cut -f1 $*.db > $*.id
 	cut -f2 $*.db > $*_${SRC}.al
