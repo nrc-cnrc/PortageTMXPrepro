@@ -141,44 +141,32 @@ endif
 	mv $*.id $*.id.tmp
 
 # Step 2: Clean up and normalize the text.
-#   - Convert wide punctuation character to space-surrounded normal ones in the EN-GB.
+#   - Convert wide punctuation character to space-surrounded normal ones in the EN-GB,
+#     when doing Chinese-English.
 #   - Strip HTML markup where the HTML code starts with a non-uppercase character.
-#   (Note: some TMX files contain some non-HTML text sequences surrounded by
-#   <>, but these start with an uppercase letter whereas the HTML sequences are
-#   lowercase.)
+#     (Note: some TMX files contain some non-HTML text sequences surrounded by
+#     <>, but these start with an uppercase letter whereas the HTML sequences are
+#     lowercase.)
 #   - Replace control characters that are invalid in plain text by spaces.
 #   - Normalize spaces.
 #   - Replace occurrences of ||| by ___|||___ since ||| is an invalid token in phrase tables.
 
-FIX_WIDE_CHARS = s/([，。：）（；？﹗．﹪﹡﹟])/ \1 /g; tr/，。：）（；？﹗．﹪﹡﹟/,.:)(;?!.%*\#/;
-
 ifneq ("$(filter ZH-CN,${TMX_SRC} ${TMX_TGT})","")
-%.EN-GB${TXTX}.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
-%.EN-GB.clean: DO_FIX_WIDE_CHARS = ${FIX_WIDE_CHARS}
+%.EN-GB${TXTX}.clean: FIX_WIDE_CHARS_OPT=-wide-punct
+%.EN-GB.clean: FIX_WIDE_CHARS_OPT=-wide-punct
 endif
 
-# This expression replaces the official Unicode non-breaking hyphen (\x2011),
-# MS Word's non-breaking hyphen (alt-0173, \xAD, officially the soft hyphen),
-# MS Word's former non-breaking hyphen (\x1E), by a plain hyphen, -.
-HYPHENS_TO_NORMALIZE = s/[‑­\x1E]/-/g;
-# This expression removes MS Word's discretional hyphen, \x1F.
-HYPHENS_TO_REMOVE = s/[\x1F]//g;
-# Non breaking spaces
-NON_BREAKING_SPACES := s/[\x{2060}\x{FEFF}\x{00A0}\x{2007}\x{202F}]/ /g;
+# Uncomment or comment out the DO_STRIP_NON_UC_HTML=1 definition to turn HTML
+# stripping on or off.
+DO_STRIP_NON_UC_HTML=1
+ifeq (${DO_STRIP_NON_UC_HTML},1)
+   STRIP_NON_UC_HTML = s/\s*(<[^A-Z>][^>]*>\s*)+\s*/ /g;
+endif
 
 %.clean: %
 	cat $< \
-	| perl -ple 'BEGIN{use encoding "UTF-8"; use utf8}; \
-	             ${DO_FIX_WIDE_CHARS} \
-	             ${HYPHENS_TO_NORMALIZE} \
-	             ${HYPHENS_TO_REMOVE} \
-	             s/\s*(<[^A-Z>][^>]*>\s*)+\s*/ /g; \
-	             ${NON_BREAKING_SPACES} \
-	             s/[\x01-\x09\x0B\x0C\x0E-\x1F\x7F]/ /g; \
-	             s/\s+/ /g; \
-	             s/(^| )\|\|\|(?= |$$)/ ___|||___/g; \
-	             s/^\s+//g; \
-	             s/\s+$$//g;' \
+	| perl -ple 'BEGIN{use encoding "UTF-8"; use utf8}; ${STRIP_NON_UC_HTML}' \
+	| clean-utf8-text.pl ${FIX_WIDE_CHARS_OPT} \
 	> $@
 
 # Step 3: Remove mono-lingual entries.
