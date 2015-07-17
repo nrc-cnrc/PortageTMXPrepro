@@ -108,7 +108,7 @@ utf8: $(CORPORA_FILES:=.utf8.tmx)
 	             s/[\x01-\x09\x0B\x0C\x0E-\x1d]/ /g; \
 	             s/[\x1e]/-/g; \
 	             s/[\x1f]//g;  \
-	             s/&#x[1-9bce];/ /ig; \
+	             s/&#x0?[1-9bce];/ /ig; \
 	             s/&#x1[0-9a-d];/ /ig; \
 	             s/&#x1e;/-/ig; \
 	             s/&#x1f;//ig; ' \
