@@ -77,6 +77,12 @@ clean.inter:
 $(addprefix clean.sets., ${ALL_CORPORA} all): clean.sets.%:
 	${RM} $(foreach s, ${ALL_SETS}, $*.$s*) $*${ET_AL}.${TRAIN_SET}* $*${ET_AL}.${ALL_SET}*
 
+ifdef USE_DEFAULT_SET_NAMES
+PHONY: clean.sets.default
+clean: clean.sets.default
+clean.sets.default:
+	${RM} ${DEFAULT_FILES}
+endif
 
 ########################################
 # Combine the extracted parallel corpora files into domain groupings
