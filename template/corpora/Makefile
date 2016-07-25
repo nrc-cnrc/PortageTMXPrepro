@@ -92,10 +92,13 @@ else
    DO_SORT = cat
 endif
 
+# Note: The $($*:=_${SRC}.al) syntax in the commands below is intentional.
+# e.g. if $* = "corpus", then $($*:=_${SRC}.al) appends "_${SRC}.al" to each
+# word in $corpus
 $(ALL_CORPORA:=.id): %.id:
-	zcat -f $(addprefix ${CORPORA_DIR}/, $*_${SRC}.al) > $*_${SRC}.al
-	zcat -f $(addprefix ${CORPORA_DIR}/, $*_${TGT}.al) > $*_${TGT}.al
-	zcat -f $(addprefix ${CORPORA_DIR}/, $*.id) > $*.id
+	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${SRC}.al)) > $*_${SRC}.al
+	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${TGT}.al)) > $*_${TGT}.al
+	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=.id)) > $*.id
 	paste $*.id $*_${SRC}.al $*_${TGT}.al | ${DO_SORT} > $*.db
 	cut -f1 $*.db > $*.id
 	cut -f2 $*.db > $*_${SRC}.al
