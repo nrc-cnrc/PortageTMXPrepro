@@ -36,7 +36,7 @@ all: tu
 .PHONY: clean clean.inter clean.all
 clean: clean.inter
 	${RM} $(CORPORA_FILES:=.utf8.tmx)
-	${RM} $(CORPORA_FILES:=_${SRC}.al) $(CORPORA_FILES:=_${TGT}.al) $(CORPORA_FILES:=.id)
+	${RM} $(CORPORA_FILES:=_${SRC}.extracted) $(CORPORA_FILES:=_${TGT}.extracted) $(CORPORA_FILES:=.id)
 	
 clean.inter:
 	${RM} $(CORPORA_FILES:=.${TMX_SRC}) $(CORPORA_FILES:=.${TMX_TGT})
@@ -129,7 +129,7 @@ validate.utf8.%: %
 ########################################
 # Extract the translation units.
 .PHONY: tu
-tu: $(CORPORA_FILES:=_${SRC}.al) $(CORPORA_FILES:=_${TGT}.al)
+tu: $(CORPORA_FILES:=_${SRC}.extracted) $(CORPORA_FILES:=_${TGT}.extracted)
 
 # Step 1: Extract bilingual corpora from TMX files.
 
@@ -181,14 +181,14 @@ else
 endif
 
 # WARNING: Make sure your .clean files are tab-free.
-%_${SRC}.al %_${TGT}.al %.id: %.${TMX_SRC}${TXTX}.clean %.${TMX_TGT}${TXTX}.clean %.id.tmp
+%_${SRC}.extracted %_${TGT}.extracted %.id: %.${TMX_SRC}${TXTX}.clean %.${TMX_TGT}${TXTX}.clean %.id.tmp
 	paste $*.id.tmp $*.${TMX_SRC}${TXTX}.clean $*.${TMX_TGT}${TXTX}.clean \
 	| perl -ne 'print $$_ unless /(^|\t)(\t|$$)/;' \
 	| ${DO_SORT} \
 	> $*.db
 	cut -f1 $*.db | perl -ple 's/\s+/ /g' > $*.id
-	cut -f2 $*.db | perl -ple 's/\s+/ /g' > $*_${SRC}.al
-	cut -f3 $*.db | perl -ple 's/\s+/ /g' > $*_${TGT}.al
+	cut -f2 $*.db | perl -ple 's/\s+/ /g' > $*_${SRC}.extracted
+	cut -f3 $*.db | perl -ple 's/\s+/ /g' > $*_${TGT}.extracted
 	${RM} $*.db
 
 
@@ -196,10 +196,10 @@ endif
 # Let do some minimal validation on the output files.
 .PHONY: validate
 validate: SHELL=bash
-validate: $(addprefix ${CORPORA}, _${SRC}.al _${TGT}.al .id)
+validate: $(addprefix ${CORPORA}, _${SRC}.extracted _${TGT}.extracted .id)
 	! egrep '^ *$$|EMPTY_' $+
-	[[ "`wc -l < $(filter %_${SRC}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
-	[[ "`wc -l < $(filter %_${TGT}.al, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
+	[[ "`wc -l < $(filter %_${SRC}.extracted, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
+	[[ "`wc -l < $(filter %_${TGT}.extracted, $+)`" == "`wc -l < $(filter %.id, $+)`" ]]
 
 
 ############################################################
@@ -241,7 +241,7 @@ counts: $(addprefix counts., ${CORPORA_FILES})
 
 counts.%: %.utf8.tmx
 	-egrep '<tu>|<tu .*>' $< | wc -l
-	-wc -l $(addprefix $*, _${SRC}.al _${TGT}.al .id .${TMX_SRC} .${TMX_TGT} .${TMX_SRC}.clean .${TMX_TGT}.clean) || true
+	-wc -l $(addprefix $*, _${SRC}.extracted _${TGT}.extracted .id .${TMX_SRC} .${TMX_TGT} .${TMX_SRC}.clean .${TMX_TGT}.clean) || true
 
 ########################################
 # Count empty lines. The difference should be the missing tuv/seg.
@@ -250,13 +250,13 @@ empty: $(addprefix empty., ${CORPORA_FILES})
 
 empty.%: %.utf8.tmx
 	-egrep -H -c $$'<seg></seg>' $< || true
-	-egrep -c '^ *$$' $(addprefix $*, _${SRC}.al _${TGT}.al .id .${TMX_SRC} .${TMX_TGT}) || true
+	-egrep -c '^ *$$' $(addprefix $*, _${SRC}.extracted _${TGT}.extracted .id .${TMX_SRC} .${TMX_TGT}) || true
 
 ########################################
 # Get counts for all non latin1 characters.
 .PHONY: non_latin1_counts
 non_latin1_counts:
-	cat $(CORPORA_FILES:=_${SRC}.al) $(CORPORA_FILES:=_${TGT}.al) \
+	cat $(CORPORA_FILES:=_${SRC}.extracted) $(CORPORA_FILES:=_${TGT}.extracted) \
 	| iconv_libiconv -f UTF-8 -t latin1 --unicode-subst="<[%x]>" \
 	| egrep -o '<\[[^<]+\]>' \
 	| sort \
@@ -265,7 +265,7 @@ non_latin1_counts:
 .PHONY: check.non_latin1
 check.non_latin1: $(addprefix check.non_latin1., ${CORPORA_FILES})
 
-check.non_latin1.%: check.nl.%_${SRC}.al check.nl.%_${TGT}.al
+check.non_latin1.%: check.nl.%_${SRC}.extracted check.nl.%_${TGT}.extracted
 	@echo 
 
 check.nl.%: %
@@ -276,9 +276,9 @@ check.nl.%: %
 	| uniq -c
 
 ########################################
-# Look for html markup in all .al files.
+# Look for html markup in all .extracted files.
 .PHONY: find_markup
-find_markup: find_markup.al
+find_markup: find_markup.extracted
 
 # Look for html markup in all files having % extension.
 find_markup.%:
@@ -288,4 +288,4 @@ find_markup.%:
 # Find sentences that appear three times or more.
 .PHONY: duplicates
 duplicates:
-	sort $(CORPORA_FILES:=_${TGT}.al) | uniq -c | egrep -v '[ ]*1 ' | egrep -v '[ ]*2 ' | sort -nr
+	sort $(CORPORA_FILES:=_${TGT}.extracted) | uniq -c | egrep -v '[ ]*1 ' | egrep -v '[ ]*2 ' | sort -nr

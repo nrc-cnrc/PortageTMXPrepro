@@ -121,7 +121,7 @@ SCRIPTS_DIR ?= ${PROJECT_DIR}/scripts
 TXTX ?= .txt
 
 # Suffixes for the original parallel corpora files
-SFXS ?= _${SRC}.al _${TGT}.al .id
+SFXS ?= _${SRC}.extracted _${TGT}.extracted .id
 
 DT_SETS ?= ${TEST_SETS} ${DEV_SETS}
 ALL_SETS ?= ${DT_SETS} ${TRAIN_SET} ${ALL_SET}

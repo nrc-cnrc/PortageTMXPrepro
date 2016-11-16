@@ -33,7 +33,7 @@ include ../preparation/Makefile.params
 CORPORA_DIR ?= ${PREP_DIR}
 
 
-vpath %.al ${CORPORA_DIR} .
+vpath %.extracted ${CORPORA_DIR} .
 vpath %.id ${CORPORA_DIR} .
 
 
@@ -69,7 +69,7 @@ clean: clean.inter $(addprefix clean.sets., ${ALL_CORPORA} all)
 
 .PHONY: clean.inter
 clean.inter:
-	${RM} $(ALL_CORPORA:=_${SRC}.al) $(ALL_CORPORA:=_${TGT}.al) $(ALL_CORPORA:=.id)
+	${RM} $(ALL_CORPORA:=_${SRC}.extracted) $(ALL_CORPORA:=_${TGT}.extracted) $(ALL_CORPORA:=.id)
 	${RM} *.tmp*
 	${RM} *.rtrain
 
@@ -98,22 +98,22 @@ else
    DO_SORT = cat
 endif
 
-# Note: The $($*:=_${SRC}.al) syntax in the commands below is intentional.
-# e.g. if $* = "corpus", then $($*:=_${SRC}.al) appends "_${SRC}.al" to each
+# Note: The $($*:=_${SRC}.extracted) syntax in the commands below is intentional.
+# e.g. if $* = "corpus", then $($*:=_${SRC}.extracted) appends "_${SRC}.extracted" to each
 # word in $corpus
 $(ALL_CORPORA:=.id): %.id:
-	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${SRC}.al)) > $*_${SRC}.al
-	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${TGT}.al)) > $*_${TGT}.al
+	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${SRC}.extracted)) > $*_${SRC}.extracted
+	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=_${TGT}.extracted)) > $*_${TGT}.extracted
 	zcat -f $(addprefix ${CORPORA_DIR}/, $($*:=.id)) > $*.id
-	paste $*.id $*_${SRC}.al $*_${TGT}.al | ${DO_SORT} > $*.db
+	paste $*.id $*_${SRC}.extracted $*_${TGT}.extracted | ${DO_SORT} > $*.db
 	cut -f1 $*.db > $*.id
-	cut -f2 $*.db > $*_${SRC}.al
-	cut -f3 $*.db > $*_${TGT}.al
+	cut -f2 $*.db > $*_${SRC}.extracted
+	cut -f3 $*.db > $*_${TGT}.extracted
 	${RM} $*.db
 
-$(ALL_CORPORA:=_${SRC}.al): %_${SRC}.al: | %.id ;
+$(ALL_CORPORA:=_${SRC}.extracted): %_${SRC}.extracted: | %.id ;
 
-$(ALL_CORPORA:=_${TGT}.al): %_${TGT}.al: | %.id ;
+$(ALL_CORPORA:=_${TGT}.extracted): %_${TGT}.extracted: | %.id ;
 
 ########################################	
 # Create the domain train, dev, and test sets.
@@ -131,8 +131,8 @@ ifdef USE_DEFAULT_SET_NAMES
 # files when a corpus name stem in not to be included in the final set names.
 sets: default_sets
 
-DEFAULT_FILES = $(foreach s, ${DT_SETS}, $(addprefix $s, ${SFXS:.al=.raw})) \
-                $(foreach s, ${TRAIN_SET} ${ALL_SET}, $(addprefix $s, ${SFXS:.al=.raw.gz}))
+DEFAULT_FILES = $(foreach s, ${DT_SETS}, $(addprefix $s, ${SFXS:.extracted=.raw})) \
+                $(foreach s, ${TRAIN_SET} ${ALL_SET}, $(addprefix $s, ${SFXS:.extracted=.raw.gz}))
 
 .PHONY: default_sets
 default_sets: ${DEFAULT_FILES}
@@ -145,11 +145,11 @@ else
 sets: $(addprefix set., ${ALL_CORPORA})
 
 .PHONY: $(addprefix set., ${ALL_CORPORA})
-$(addprefix set., ${CORPORA_DT}): set.%: $(foreach s, ${DT_SETS}, $(addprefix %.$s, ${SFXS:.al=.raw}))
-$(addprefix set., ${CORPORA_DT}): set.%: $(addprefix %.${TRAIN_SET}, ${SFXS:.al=.raw.gz})
-$(addprefix set., ${CORPORA_DT}): set.%: $(addprefix %.${ALL_SET}, ${SFXS:.al=.raw.gz})
+$(addprefix set., ${CORPORA_DT}): set.%: $(foreach s, ${DT_SETS}, $(addprefix %.$s, ${SFXS:.extracted=.raw}))
+$(addprefix set., ${CORPORA_DT}): set.%: $(addprefix %.${TRAIN_SET}, ${SFXS:.extracted=.raw.gz})
+$(addprefix set., ${CORPORA_DT}): set.%: $(addprefix %.${ALL_SET}, ${SFXS:.extracted=.raw.gz})
 
-$(addprefix set., ${CORPORA_NO_DT}): set.%: $(addprefix %.${TRAIN_SET}, ${SFXS:.al=.raw.gz})
+$(addprefix set., ${CORPORA_NO_DT}): set.%: $(addprefix %.${TRAIN_SET}, ${SFXS:.extracted=.raw.gz})
 	ln -sf $*.${TRAIN_SET}_${SRC}.raw.gz $*.${ALL_SET}_${SRC}.raw.gz
 	ln -sf $*.${TRAIN_SET}_${TGT}.raw.gz $*.${ALL_SET}_${TGT}.raw.gz
 	ln -sf $*.${TRAIN_SET}.id $*.${ALL_SET}.id
@@ -171,8 +171,8 @@ endif
 # Upon request an overall all.train set is created which is the concatenation
 # of all the train sets.
 
-$(ALL_CORPORA:=.train_${SRC}.raw.tmp): %.train_${SRC}.raw.tmp: %_${SRC}.al
-$(ALL_CORPORA:=.train_${TGT}.raw.tmp): %.train_${TGT}.raw.tmp: %_${TGT}.al
+$(ALL_CORPORA:=.train_${SRC}.raw.tmp): %.train_${SRC}.raw.tmp: %_${SRC}.extracted
+$(ALL_CORPORA:=.train_${TGT}.raw.tmp): %.train_${TGT}.raw.tmp: %_${TGT}.extracted
 $(ALL_CORPORA:=.train.id.tmp): %.train.id.tmp: %.id
 $(foreach c, ${ALL_CORPORA}, $c.train_${SRC}.raw.tmp $c.train_${TGT}.raw.tmp $c.train.id.tmp): %.tmp:
 	cp $< $@
@@ -234,8 +234,8 @@ $(ALL_CORPORA:=.${TRAIN_SET}.id): %.${TRAIN_SET}.id:
 	cat $*.train_${SRC}.raw.tmp | gzip > $*.${TRAIN_SET}_${SRC}.raw.gz
 	cat $*.train_${TGT}.raw.tmp | gzip > $*.${TRAIN_SET}_${TGT}.raw.gz
 	cat $*.train.id.tmp > $*.${TRAIN_SET}.id
-	$(if ${$*.extra}, cat $*.train_${SRC}.raw.tmp $(filter %_${SRC}.al, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${SRC}.raw.gz)
-	$(if ${$*.extra}, cat $*.train_${TGT}.raw.tmp $(filter %_${TGT}.al, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz)
+	$(if ${$*.extra}, cat $*.train_${SRC}.raw.tmp $(filter %_${SRC}.extracted, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${SRC}.raw.gz)
+	$(if ${$*.extra}, cat $*.train_${TGT}.raw.tmp $(filter %_${TGT}.extracted, $+) | gzip > $*${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz)
 	$(if ${$*.extra}, cat $*.train.id.tmp $(filter %.id, $+) > $*${ET_AL}.${TRAIN_SET}.id)
 	rm $*.train_${SRC}.raw.tmp $*.train_${TGT}.raw.tmp $*.train.id.tmp
 
@@ -249,11 +249,11 @@ $(ALL_CORPORA:=${ET_AL}.${TRAIN_SET}_${TGT}.raw.gz): %${ET_AL}.${TRAIN_SET}_${TG
 endif
 
 $(ALL_CORPORA:=.${ALL_SET}.id): %.${ALL_SET}.id:
-	cat $*_${SRC}.al | gzip > $*.${ALL_SET}_${SRC}.raw.gz
-	cat $*_${TGT}.al | gzip > $*.${ALL_SET}_${TGT}.raw.gz
+	cat $*_${SRC}.extracted | gzip > $*.${ALL_SET}_${SRC}.raw.gz
+	cat $*_${TGT}.extracted | gzip > $*.${ALL_SET}_${TGT}.raw.gz
 	cat $*.id > $*.${ALL_SET}.id
-	$(if ${$*.extra}, cat $(filter %_${SRC}.al, $+) | gzip > $*${ET_AL}.${ALL_SET}_${SRC}.raw.gz)
-	$(if ${$*.extra}, cat $(filter %_${TGT}.al, $+) | gzip > $*${ET_AL}.${ALL_SET}_${TGT}.raw.gz)
+	$(if ${$*.extra}, cat $(filter %_${SRC}.extracted, $+) | gzip > $*${ET_AL}.${ALL_SET}_${SRC}.raw.gz)
+	$(if ${$*.extra}, cat $(filter %_${TGT}.extracted, $+) | gzip > $*${ET_AL}.${ALL_SET}_${TGT}.raw.gz)
 	$(if ${$*.extra}, cat $(filter %.id, $+) > $*${ET_AL}.${ALL_SET}.id)
 
 $(ALL_CORPORA:=.${ALL_SET}_${SRC}.raw.gz): %.${ALL_SET}_${SRC}.raw.gz: | %.${ALL_SET}.id ;
@@ -272,9 +272,9 @@ ifdef DO_ALL.TRAIN_SET
 sets: set.all
 
 .PHONY: set.all
-set.all: $(addprefix all.${TRAIN_SET}, ${SFXS:.al=.raw.gz})
+set.all: $(addprefix all.${TRAIN_SET}, ${SFXS:.extracted=.raw.gz})
 
-all.${TRAIN_SET}.id: %.id: $(foreach c, ${ALL_CORPORA}, $(addprefix $c$(if ${$c.extra},${ET_AL}).${TRAIN_SET}, ${SFXS:.al=.raw.gz}))
+all.${TRAIN_SET}.id: %.id: $(foreach c, ${ALL_CORPORA}, $(addprefix $c$(if ${$c.extra},${ET_AL}).${TRAIN_SET}, ${SFXS:.extracted=.raw.gz}))
 	cat $(filter %_${SRC}.raw.gz, $+) > $*_${SRC}.raw.gz
 	cat $(filter %_${TGT}.raw.gz, $+) > $*_${TGT}.raw.gz
 	cat $(filter %.id, $+) > $*.id
@@ -293,7 +293,7 @@ endif
 check.counts: $(addprefix check.counts., ${ALL_CORPORA} ${EXTRA_CORPORA})
 
 $(addprefix check.counts., ${CORPORA_DT}): check.counts.%:
-	-wc -l $*_${SRC}.al $*_${TGT}.al $*.id
+	-wc -l $*_${SRC}.extracted $*_${TGT}.extracted $*.id
 	-wc -l $*.*_${SRC}.raw
 	-wc -l $*.*_${TGT}.raw
 	-wc -l $*.*.id
@@ -306,7 +306,7 @@ $(addprefix check.counts., ${CORPORA_DT}): check.counts.%:
 	@echo
 
 $(addprefix check.counts., ${CORPORA_NO_DT}): check.counts.%:
-	-wc -l $*_${SRC}.al $*_${TGT}.al $*.id
+	-wc -l $*_${SRC}.extracted $*_${TGT}.extracted $*.id
 	-zcat $*.${TRAIN_SET}_${SRC}.raw.gz | wc -l
 	-zcat $*.${TRAIN_SET}_${TGT}.raw.gz | wc -l
 	-wc -l $*.${TRAIN_SET}.id
@@ -316,8 +316,8 @@ $(addprefix check.counts., ${CORPORA_NO_DT}): check.counts.%:
 	@echo
 
 $(addprefix check.counts., ${EXTRA_CORPORA}): check.counts.%:
-	-wc -l $(addprefix ${CORPORA_DIR}/,$(addsuffix _${SRC}.al,$($*)))
-	-wc -l $(addprefix ${CORPORA_DIR}/,$(addsuffix _${TGT}.al,$($*)))
+	-wc -l $(addprefix ${CORPORA_DIR}/,$(addsuffix _${SRC}.extracted,$($*)))
+	-wc -l $(addprefix ${CORPORA_DIR}/,$(addsuffix _${TGT}.extracted,$($*)))
 	-wc -l $(addprefix ${CORPORA_DIR}/,$(addsuffix .id,$($*)))
 
 # Check the counts on just the .id files
