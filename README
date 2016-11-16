@@ -7,6 +7,10 @@ Copyright 2004-2016, Her Majesty in Right of Canada
 
                                  tmx-prepro
 
+The tmx-prepro module is intended to automate extracting sentence pairs from
+TMX files and splitting them into the train/dev/test files needed to train
+PortageII.
+
 Directory template/tmx/ is where you drop your input TMX files.
 
 Directory template/preparation/ contains a Makefile to extract text from TMX
@@ -45,3 +49,12 @@ reuses the same Makefile.params from template/preparation/.
 5. Copy the train, dev, and test raw files to your framework/corpora directory:
       cd /path/to/training/area/template/corpora
       cp all.* train.* test*.* dev*.* /path/to/training/area/framework/corpora
+
+                            Other Documentation
+
+Additional information about processing TMX files can be found in the TMX
+Processing page of the user manual on your PortageII distro
+(doc/user-manual.html).
+
+Running "tmx2lfl.pl -h" will give details on tmx2lfl.pl, the tool used by
+tmx-prepro to extract text out of your TMX files.
