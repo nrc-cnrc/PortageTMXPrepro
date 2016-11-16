@@ -1,6 +1,6 @@
 # vim:noet:ts=3
 # @author Darlene Stewart
-# @brief Master parameter file for CLS Lexi-tech for corpora preprocessing
+# @brief Master parameter file for processing corpora extracted from TMX files,
 # where all user specific parameters should be set.
 # 
 # This Makefile.params can be used for processing: 
@@ -13,11 +13,12 @@
 # The two dev and one test sets are 1500 sentences each for big domains, or
 # 1000 sentences for smaller domains.
 #
-# Technologies langagieres interactives / Interactive Language Technologies
-# Tech. de l'information et des communications / Information and Communications Tech.
+# Traitement multilingue de textes / Multilingual Text Processing
+# Technologies de l'information et des communications /
+#    Information and Communications Technologies
 # Conseil national de recherches Canada / National Research Council Canada
-# Copyright 2012, Sa Majeste la Reine du Chef du Canada
-# Copyright 2012, Her Majesty in Right of Canada
+# Copyright 2012, 2016, Sa Majeste la Reine du Chef du Canada
+# Copyright 2012, 2016, Her Majesty in Right of Canada
 
 # Print the Portage Copyright no matter where we start from -- but only once.
 ifeq (${MAKELEVEL},0)
@@ -59,7 +60,7 @@ TMX_TGT ?= FR-CA
 #
 # Leaving CORPORA_BIG_DT, CORPORA_SMALL_DT and CORPORA_NO_DT all blank or
 # undefined triggers preparation of sets for a single corpus with no corpus
-# name included in the filenames.
+# name included in the filenames, with "big" dev/test sets.
 CORPORA_BIG_DT ?=
 CORPORA_SMALL_DT ?=
 CORPORA_NO_DT ?=
