@@ -104,7 +104,8 @@ utf8: $(CORPORA_FILES:=.utf8.tmx)
 #    is expected to be the right thing to do most of the time.
 %.utf8.clean.tmx: %.utf8.tmx
 	cat $< \
-	| perl -ple 'use encoding "UTF-8"; \
+	| perl -ple 'binmode STDIN, ":encoding(UTF-8)"; \
+	             binmode STDOUT, ":encoding(UTF-8)"; \
 	             s/[\x01-\x09\x0B\x0C\x0E-\x1d]/ /g; \
 	             s/[\x1e]/-/g; \
 	             s/[\x1f]//g;  \
@@ -165,7 +166,8 @@ endif
 
 %.clean: %
 	cat $< \
-	| perl -ple 'BEGIN{use encoding "UTF-8"; use utf8}; ${STRIP_NON_UC_HTML}' \
+	| perl -ple 'BEGIN { binmode STDIN, ":encoding(UTF-8)"; binmode STDOUT, ":encoding(UTF-8)"; use utf8; }; \
+	             ${STRIP_NON_UC_HTML}' \
 	| clean-utf8-text.pl ${FIX_WIDE_CHARS_OPT} \
 	> $@
 
