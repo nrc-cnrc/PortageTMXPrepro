@@ -1,14 +1,23 @@
 Traitement multilingue de textes / Multilingual Text Processing
 Centre de recherche en technologies numériques / Digital Technologies Research Centre
 Conseil national de recherches Canada / National Research Council Canada
-Copyright 2004-2021, Sa Majesté la Reine du Chef du Canada
-Copyright 2004-2021, Her Majesty in Right of Canada
+Copyright 2004-2022, Sa Majesté la Reine du Chef du Canada
+Copyright 2004-2022, Her Majesty in Right of Canada
+
+
+                            Le module tmx-prepro
+
+Le module tmx-prepro (maintenant PortageTMXPrepro) permet d'automatiser
+l'extraction des paires de phrases à partir de fichiers TMX et de les diviser en
+jeux d'entrainement ("train"), de dévelopement ("dev") et de test ("test"), tel
+que requis pour l'entraînement et l'optimisation d'un système PortageII.
+
 
                                  tmx-prepro
 
-The tmx-prepro module is intended to automate extracting sentence pairs from
-TMX files and splitting them into the train/dev/test files needed to train
-PortageII.
+The tmx-prepro module (now PortageTMXPrepro) is intended to automate extracting
+sentence pairs from TMX files and splitting them into the train/dev/test files
+needed to train PortageII.
 
 Directory template/tmx/ is where you drop your input TMX files.
 
