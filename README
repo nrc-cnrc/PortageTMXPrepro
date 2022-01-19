@@ -34,6 +34,8 @@ reuses the same Makefile.params from template/preparation/.
 1. Make a copy of the template directory to use for the corpus.
       cd $PORTAGE/tmx-prepro
       cp -pr template /path/to/training/area/template
+   or
+      git clone https://github.com/nrc-cnrc/PortageTMXPrepro.git /path/to/training/area
 
 2. Drop your TMX files (with .tmx extension) into the tmx sub-directory:
    /path/to/training/area/template/tmx.
